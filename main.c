@@ -1,172 +1,71 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <SDL/SDL.h>
-#include <SDL/SDL_image.h>
-#include "perso.h"
-#include "temps.h"
-#include "minimap.h"
-#include "collision.h"
-#include <SDL/SDL_ttf.h>
-
-
-#define GRAVITY 10
+#include "grille.h"
 int main()
 {
-    TTF_Init();
-SDL_Color couleurnoire = {0, 0, 0};
-TTF_Font *police;
-SDL_Surface *image_temps;
-police=TTF_OpenFont("avocado.ttf",22);
-int time;
-clock_t debut;
-debut=clock();
-SDL_Init(SDL_INIT_VIDEO);
-SDL_Surface *screen , *mask/*, *mini*/;
-screen=SDL_SetVideoMode (1300,700,32,SDL_HWSURFACE|SDL_DOUBLEBUF);
-//mini=IMG_Load("minimap.png");
-SDL_WM_SetCaption("perso\t1",NULL);
-SDL_Rect camera;
-SDL_Event event;
-perso p;
-minimap m;
-SDL_Surface *back;
-back=IMG_Load("back.png");
-mask=IMG_Load("mask.png");
-int continuer=1;
-int right=0,left=0,up=0;
-init(&p);
-init_map(&m);
-camera.x=0;
-camera.y=0;
-camera.w=1300;
-camera.h=700;
+   Grille g;
+   int i, j, joueur = 0, colonne, ligne;
+   int y = 0, compt1 = 0;
+   int N = 50;
+   char nom1[N], nom2[N], recom;
+   SDL_Surface *screen;
+   screen = SDL_SetVideoMode(700, 600, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
+   affichage(&g,screen);
+   SDL_Flip(screen);
+   printf("nom du premier joueur!!\n");
+   scanf("%s", &nom1[N]);
+   printf("nom du deuxiem jouer\n");
+   scanf("%s", &nom2[N]);
 
-while(continuer)
-{char chaine_temps[10];
-    
-    time=affichetemps (screen ,0,debut);
-    printf ("%d \n",time);
-    sprintf(chaine_temps,"%02d",time);
-    image_temps=TTF_RenderText_Blended(police,chaine_temps,couleurnoire);
-    
-    time=affichetemps (screen ,0,debut);
-    printf ("%d \n",time);
-    SDL_BlitSurface(back,NULL,screen,NULL);
-while(SDL_PollEvent(&event))
-	{
+   
+   initgrille(&g);
 
-		switch(event.type)
-		{
-		case SDL_QUIT:
-
-			continuer=0;
-		break;
-		case SDL_KEYDOWN:
-			switch (event.key.keysym.sym)
-			{
-                case SDLK_LEFT:
-                    left=1;
-                break;
-                case SDLK_RIGHT:
-                   
-                       right=1;
-                   
-                   
-                    
-                break;
-                case SDLK_UP:
-                    up=1;
-                break;    
-
+   afficherGrille(&g);
+   //affichage(&g,screen);
+   
+    //  initgrille(&g);
+      do
+      {
+         //affichage(&g,screen);
+         if (joueur % 2 == 0) // evident
+         {
+            printf("%s, posez votre pion\n", &nom1[N]); // on rentre son nom
+            colonne = saisircoup(&g);
+            ligne = g.remplissage[colonne]; //remplissage d�finit les lignes de la colonne
+            g.grille[ligne][colonne] = 'O';
+            g.remplissage[colonne] = g.remplissage[colonne] + 1;
+            compt1++;
+            system("cls");
+            afficherGrille(&g);
+            affichage(&g,screen);
+            if (partieEstGagneeOuPas(&g,colonne, ligne) == 1) // si la partie est gagn�e
+            {
+               printf("%s gagne au %deme coup\n", &nom1[N], compt1 / 2 + 1);
             }
-            break;
-        case SDL_KEYUP:
-            switch (event.key.keysym.sym)
-			{
-                case SDLK_LEFT:
-                    left=0;
-                break;
-                case SDLK_RIGHT:
-                    right=0;
-                break;
-                case SDLK_UP:
-                    up=0;
-                break;
+         }
+
+         if (joueur % 2 != 0)
+         {
+            //printf("%s, posez votre pion\n", &nom2[N]);
+            //colonne = saisircoup(&g);
+            colonne = IA(&g);
+            ligne = g.remplissage[colonne];
+            g.grille[ligne][colonne] = 'X';
+            g.remplissage[colonne] = g.remplissage[colonne] + 1;
+            compt1++;
+            system("cls"); // efface
+            afficherGrille(&g);
+            affichage(&g,screen);
+            if (partieEstGagneeOuPas(&g ,colonne, ligne) == 1)
+            {
+               printf("%s gagne au %deme coup\n", &nom2[N], compt1 / 2);
             }
-        break;    
-        }
-    }        
+         }
 
-if (left==1) {
-    
-    p.direction=1;
-    deplacerPerso(&p);
+         joueur = joueur + 1; //on incremente le joueur
 
-    }
-if (right==1)
-{//if (collision_parfaite_right(mask , p.posperso )==0)
-           //        {
-    p.direction=0;
-    deplacerPerso(&p);
+      } while ((!estRemplieOuNon(&g) && !partieEstGagneeOuPas(&g,colonne, ligne))); // r�p�ter tant que c'est pas rempli
 
-               //    }
-} 
-if (up==1) saut(&p);
+      // printf("le score de %s est %d\n",&nom1[N],score1);
+      // printf("le score de %s est %d\n",&nom2[N],score2);
 
-
-
-
-//deplacerPerso(&p);
-/*if (p.direction==0) p.posperso.x--;
-if (p.direction==1) p.posperso.x++;*/
-
-if (p.direction==0) {
-    if (collision_parfaite_right(mask , p.posperso )==0)
-                  {
-    p.posperso.x+= p.vh;
-                  }
+     
 }
-
-if (p.direction==1) {
-    if (collision_parfaite_left(mask , p.posperso )==0)
-                  {
-    p.posperso.x-= p.vh;
-                  }
-}
-
-
-
-
-if (left==0 && right==0)
-{
-    p.vh=0;
-}
-afficherPerso(&p,screen);
-animerPerso(&p);
-
-MAJMinimap(p.posperso ,  &m, camera, 20);
-afficherminimap(m,screen);
-SDL_BlitSurface(image_temps,NULL,screen,NULL);
-
-
-if ((collision_parfaite_down(mask , p.posperso )==0)) p.posperso.y += p.vv;
-p.vv += GRAVITY ;
-if (p.posperso.y>520)
-{
-    p.posperso.y=520;
-    p.vv=0;
-}
-
-
-SDL_Flip(screen);
-//SDL_Delay();
-
-}
-
-    return 0;
-}
-
-
-
-
-
